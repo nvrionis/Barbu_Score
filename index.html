@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Barbu Scorekeeper</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <!-- STICKY TOP BAR -->
+  <header id="top-bar">
+    <div id="player-info"></div>
+    <button id="clear-data" class="reset-btn">Reset Game</button>
+  </header>
+
+  <!-- GAME SETUP -->
+  <section id="setup-screen" class="section">
+    <h1>Game Setup</h1>
+    <form id="setup-form">
+      <div id="player-names" class="player-grid"></div>
+      <div id="contract-toggle" class="contract-toggle"></div>
+      <button type="submit" class="primary-btn">Start Game</button>
+    </form>
+  </section>
+
+  <!-- GAMEPLAY -->
+  <section id="game-screen" class="hidden section">
+    <div class="new-round-form">
+      <div class="dealer-display">
+        Dealer: <strong id="current-dealer"></strong>
+      </div>
+      <label for="contract-select">Contract:</label>
+      <select id="contract-select"></select>
+      <div id="score-inputs" class="score-grid"></div>
+      <button id="add-round" class="primary-btn" disabled>Submit Round</button>
+    </div>
+
+    <!-- PROGRESS TABLE (✅ vs ⭕) -->
+    <table id="progress-grid" class="progress-table">
+      <thead><tr></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- ROUNDS TABLE -->
+    <table id="round-table">
+      <thead>
+        <tr id="round-table-header"></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+<!-- END SCREEN -->
+<section id="end-screen" class="hidden section">
+  <h2>Game Over</h2>
+
+  <!-- Winner announcement placeholder -->
+  <div id="winner-announcement" class="winner-announcement"></div>
+
+  <!-- Podium and “other” list -->
+  <div id="podium" class="podium"></div>
+
+  <button id="reset-game" class="primary-btn">Restart</button>
+</section>
+
+  <script src="app.js"></script>
+</body>
+</html>

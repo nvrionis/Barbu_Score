@@ -1,0 +1,376 @@
+/* ============================= */
+/*        COLOR PALETTE         */
+/* ============================= */
+:root {
+  --bg: #181818;           /* Slightly lighter dark background */
+  --surface: #1e1e1e;      /* Elevated surface panels */
+  --text-primary: #e0e0e0; /* Main text color */
+  --accent1: hsl(275, 90%, 55%); /* Softer purple */
+  --accent2: #ff9800;      /* Warm orange for secondary highlights */
+}
+
+/* ============================= */
+/*       GLOBAL RESET           */
+/* ============================= */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  padding-top: 3.5rem; /* for sticky header */
+}
+
+/* ============================= */
+/*      STICKY TOP BAR          */
+/* ============================= */
+header#top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  z-index: 500;
+}
+
+#player-info {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.player-score {
+  background: var(--accent2);
+  color: var(--bg);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.9rem;
+  opacity: 0;
+  animation: fade-in 0.5s forwards;
+}
+
+.player-score.pulse {
+  animation: pulse 0.5s;
+}
+
+.reset-btn {
+  background: transparent;
+  border: 1px solid var(--text-primary);
+  color: var(--text-primary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.reset-btn:hover {
+  background: var(--text-primary);
+  color: var(--bg);
+}
+
+/* ============================= */
+/*    TOP-BAR SCORE HIERARCHY    */
+/* ============================= */
+#player-info .player-score {
+  /* default for ranks beyond 3 */
+  background: var(--accent2);
+  color: var(--bg);
+}
+
+/* Gold / Silver / Bronze for top 3 */
+#player-info .player-score.first {
+  background: gold;
+  color: #000;
+}
+
+#player-info .player-score.second {
+  background: silver;
+  color: #000;
+}
+
+#player-info .player-score.third {
+  background: peru; /* bronze-like */
+  color: #000;
+}
+
+/* Ranks 4, 5, 6 */
+#player-info .player-score.rank-4 {
+  background: #444; /* dark gray */
+  color: var(--text-primary);
+}
+
+#player-info .player-score.rank-5 {
+  background: #555;
+  color: var(--text-primary);
+}
+
+#player-info .player-score.rank-6 {
+  background: #666;
+  color: var(--text-primary);
+}
+
+/* Fallback for 7+ players */
+#player-info .player-score[class*="rank-"] {
+  opacity: 0.8;
+}
+
+
+/* ============================= */
+/*       KEYFRAME ANIMS         */
+/* ============================= */
+@keyframes fade-in { to { opacity: 1; } }
+@keyframes pulse {
+  0%   { transform: scale(1); }
+ 50%  { transform: scale(1.1); }
+100%  { transform: scale(1); }
+}
+@keyframes slide-in {
+  0%   { opacity: 0; transform: translateY(-10px); }
+100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================= */
+/*        UTILITIES             */
+/* ============================= */
+.hidden   { display: none; }
+.section  { padding: 1rem; }
+.primary-btn {
+  display: inline-block;      /* auto width */
+  background: var(--accent1);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.primary-btn:hover {
+  background: var(--accent2);
+}
+.primary-btn:active {
+  transform: scale(0.95);
+}
+.primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* make the Start Game button in the setup form align left */
+#setup-form .primary-btn {
+  justify-self: start;
+}
+
+/* ============================= */
+/*      SETUP FORM STYLING       */
+/* ============================= */
+#setup-form {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  row-gap: 1rem;
+}
+
+/* Player name inputs */
+.player-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
+  gap: 0.5rem;
+}
+.player-grid input {
+  width: 100%;
+  padding: 0.5rem;
+  background: var(--surface);
+  border: 1px solid #444;
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+.player-grid input:focus {
+  border-color: var(--accent1);
+  box-shadow: 0 0 0 2px rgba(127,0,255,0.2);
+}
+
+/* Contract pills */
+.contract-toggle {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
+  gap: 0.75rem;
+}
+.contract-toggle input { display: none; }
+.contract-toggle label span {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 2px solid var(--accent1);
+  border-radius: 1.5rem;
+  background: transparent;
+  color: var(--accent1);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.contract-toggle input:checked + span {
+  background: var(--accent1);
+  color: #fff;
+  border-color: var(--accent1);
+}
+.contract-toggle label span:hover {
+  background: var(--accent2);
+  color: var(--bg);
+}
+
+/* ============================= */
+/*      GAMEPLAY STYLING         */
+/* ============================= */
+/* New round form container */
+.new-round-form {
+  background: var(--surface);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.new-round-form .dealer-display {
+  flex: 1 1 100%;
+  font-weight: 600;
+}
+.new-round-form select {
+  padding: 0.5rem;
+  background: var(--surface);
+  border: 1px solid #444;
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+.new-round-form select:focus {
+  border-color: var(--accent1);
+  box-shadow: 0 0 0 2px rgba(127,0,255,0.2);
+}
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px,1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+.score-grid .score-item label {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+/* ============================= */
+/*     PROGRESS & ROUNDS TABLE   */
+/* ============================= */
+/* Progress table */
+.progress-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+.progress-table th,
+.progress-table td {
+  border: 1px solid #333;
+  padding: 0.25rem 0.5rem;
+  text-align: center;
+}
+.progress-table th {
+  background: var(--surface);
+  font-weight: 400;
+}
+
+/* Rounds table */
+#round-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+#round-table th,
+#round-table td {
+  border: 1px solid #333;
+  padding: 0.4rem;
+  text-align: center;
+}
+#round-table th {
+  background: var(--surface);
+}
+#round-table tr.slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* ============================= */
+/*          PODIUM               */
+/* ============================= */
+.podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2rem;          /* space between places */
+  margin: 2rem 0;     /* breathing room above/below */
+}
+
+.podium .place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: 600;
+}
+
+.podium .medal {
+  font-size: 3rem;    /* big trophy/medal */
+  margin-bottom: 0.25rem;
+}
+
+.podium .name {
+  font-size: 1.5rem;  /* larger winner name */
+  color: var(--accent2);
+}
+
+.podium .score {
+  font-size: 1.25rem; /* larger score */
+  margin-top: 0.25rem;
+}
+
+.podium .second {
+  opacity: 0.9;
+}
+
+.podium .third {
+  opacity: 0.8;
+}
+
+.podium .other {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 2rem;   /* slightly bigger losers */
+  color: #bbb;
+}
+
+/* ============================= */
+/*    WINNER ANNOUNCEMENT        */
+/* ============================= */
+#winner-announcement {
+  font-size: 2rem;                /* larger text */
+  font-weight: 700;               /* bolder */
+  text-align: center;             /* center on screen */
+  color: var(--accent2);          /* use your secondary accent */
+  margin: 1.5rem 0;               /* some breathing room */
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  
+  /* entrance animation */
+  animation: fade-in 0.4s ease-out, pop 0.5s ease-out 0.2s both;
+}
+
+/* "Pop" keyframe for a little scale bounce */
+@keyframes pop {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); }
+}
