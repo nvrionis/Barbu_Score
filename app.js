@@ -199,7 +199,7 @@ function renderTableHeader() {
   row.innerHTML =
     '<th>#</th>' +
     '<th>Dealer</th>' +
-    '<th>🎮 Contract</th>' +
+    '<th>🎮</th>' +
     players.map(p => `<th>${p}</th>`).join('');
 }
 
@@ -477,7 +477,7 @@ function appendRow() {
   tr.innerHTML = `
     <td>${idx+1}</td>
     <td>${r.dealer}</td>
-    <td>${EMOJI[r.contract]} ${r.contract}</td>
+    <td>${EMOJI[r.contract]}</td>
     ${players.map(p=>`<td>${r.scores[p]||0}</td>`).join('')}
   `;
   roundBody.append(tr);
