@@ -192,7 +192,6 @@ function renderTopBar() {
   prevRankOrder = ranked.map(o => o.name);
 }
 
-
 // — Render Round Table Header —
 function renderTableHeader() {
   const row = document.getElementById('round-table-header');
@@ -255,134 +254,248 @@ function nextRound() {
 
 // — Build Score Inputs for Selected Contract —
 function buildScoreInputs() {
+  window.barbuAdjustData = {}; // Reset adjustment registry
+
   const c = contractSel.value;
   dealerEl.textContent = players[currentDealerIndex];
   scoreGrid.innerHTML = '';
 
-  function makeSelect(labelText, options) {
-    const w = document.createElement('div');
-    w.className = 'score-item';
-    const lbl = document.createElement('label');
-    lbl.textContent = labelText;
-    w.append(lbl);
-    const dd = document.createElement('select');
+  function makeSelect(options, selected = '') {
+    const sel = document.createElement('select');
     options.forEach(o => {
       const opt = document.createElement('option');
       opt.value = o;
       opt.textContent = o;
-      dd.append(opt);
+      if (o === selected) opt.selected = true;
+      sel.append(opt);
     });
-    w.append(dd);
-    scoreGrid.append(w);
-    return dd;
+    return sel;
+  }
+
+  function createPlayerBlock(p) {
+    const card = document.createElement('div');
+    card.className = 'barbu-player-block';
+
+    const title = document.createElement('div');
+    title.className = 'player-title';
+    title.textContent = p;
+    card.append(title);
+
+    return card;
   }
 
   if (['Hearts', 'Queens', 'Tricks'].includes(c)) {
     let totalCount;
-    if (c === 'Hearts') totalCount = [4,5].includes(players.length) ? 13 : 12;
+    if (c === 'Hearts') totalCount = [4, 5].includes(players.length) ? 13 : 12;
     else if (c === 'Queens') totalCount = 4;
-    else totalCount = {3:16, 4:13, 5:10, 6:8}[players.length];
+    else totalCount = { 3: 16, 4: 13, 5: 10, 6: 8 }[players.length];
 
-    const selects = players.map(p =>
-      makeSelect(p, Array.from({length: totalCount+1}, (_,i) => i))
-    );
+    const selects = [];
+
+    players.forEach(p => {
+      const block = createPlayerBlock(p);
+      const label = document.createElement('label');
+      label.textContent = `${EMOJI[c]} ${c}`;
+      label.dataset.player = p;
+      const sel = makeSelect(Array.from({ length: totalCount + 1 }, (_, i) => i));
+      selects.push(sel);
+
+      const item = document.createElement('div');
+      item.className = 'score-item';
+      item.append(label, sel);
+      block.append(item);
+      scoreGrid.append(block);
+    });
 
     const adjust = () => {
-      const sum = selects.reduce((s,dd) => s + Number(dd.value), 0);
-      selects.forEach(dd => {
-        const cur = Number(dd.value);
-        const other = sum - cur;
-        const max = totalCount - other;
-        dd.innerHTML = Array.from({length: max+1}, (_,i) =>
-          `<option value="${i}">${i}</option>`
+      const values = selects.map(sel => Number(sel.value) || 0);
+      const totalUsed = values.reduce((a, b) => a + b, 0);
+      selects.forEach((sel, i) => {
+        const current = values[i];
+        const max = totalCount - (totalUsed - current);
+        const selected = sel.value;
+        sel.innerHTML = Array.from({ length: max + 1 }, (_, j) =>
+          `<option value="${j}">${j}</option>`
         ).join('');
-        dd.value = Math.min(cur, max);
+        sel.value = selected > max ? max : selected;
       });
       validateForm();
     };
-    selects.forEach(dd => dd.addEventListener('change', adjust));
-  }
 
-  else if (c === 'King of Spades') {
-    const group = 'king-spade';
+    selects.forEach(sel => sel.addEventListener('change', adjust));
+    adjust();
+  } else {
+    const lttSelects = [];
+    const barbuLTTSelects = [];
+
     players.forEach(p => {
-      const w = document.createElement('div');
-      w.className = 'score-item';
-      const rd = document.createElement('input');
-      rd.type = 'radio';
-      rd.name = group;
-      rd.value = p;
-      rd.addEventListener('change', validateForm);
-      const lbl = document.createElement('label');
-      lbl.textContent = ` ${p}`;
-      w.append(rd, lbl);
-      scoreGrid.append(w);
-    });
-  }
+      const block = createPlayerBlock(p);
 
-  else if (c === 'Last Two Tricks') {
-    const selects = players.map(p => makeSelect(p, ['None', 'Pre-last', 'Last', 'Both']));
-    
-    const adjust = () => {
+      if (c === 'King of Spades') {
+        const rd = document.createElement('input');
+        rd.type = 'radio';
+        rd.name = 'king-spade';
+        rd.value = p;
+        rd.addEventListener('change', validateForm);
+
+        const label = document.createElement('label');
+        label.style.fontWeight = 'normal';
+        label.dataset.player = p;
+        label.innerHTML = `${EMOJI[c]} ${c} `;
+        label.append(rd);
+
+
+        const item = document.createElement('div');
+        item.className = 'score-item';
+        item.append(label);
+        block.append(item);
+      }
+
+      else if (c === 'Last Two Tricks') {
+        const label = document.createElement('label');
+        label.textContent = `${EMOJI[c]} ${c}`;
+        label.dataset.player = p;
+
+        const sel = makeSelect(['None', 'Pre-last', 'Last', 'Both']);
+        lttSelects.push(sel);
+
+        const item = document.createElement('div');
+        item.className = 'score-item';
+        item.append(label, sel);
+        block.append(item);
+      }
+
+      else if (c === 'Domino') {
+        const label = document.createElement('label');
+        label.textContent = `${EMOJI[c]} ${c}`;
+        label.dataset.player = p;
+        const sel = makeSelect(['', '-100', '-50', '5', '10', '15', '20', '25']);
+        sel.addEventListener('change', validateForm);
+
+        const item = document.createElement('div');
+        item.className = 'score-item';
+        item.append(label, sel);
+        block.append(item);
+      }
+
+      else if (c === 'Barbu') {
+        block.dataset.playerGroup = p;
+        const subContracts = ['Hearts', 'Queens', 'Tricks', 'King of Spades', 'Last Two Tricks'];
+        subContracts.forEach(sub => {
+          if (!enabledContracts.includes(sub)) return;
+
+          const item = document.createElement('div');
+          item.className = 'score-item';
+          const label = document.createElement('label');
+          label.textContent = `${EMOJI[sub]} ${sub}`;
+          label.dataset.player = p;
+
+          if (['Hearts', 'Queens', 'Tricks'].includes(sub)) {
+            let totalCount = (sub === 'Hearts') ? ([4, 5].includes(players.length) ? 13 : 12)
+              : (sub === 'Queens' ? 4 : { 3: 16, 4: 13, 5: 10, 6: 8 }[players.length]);
+            const sel = makeSelect(Array.from({ length: totalCount + 1 }, (_, i) => i));
+            sel.dataset.contract = sub;
+
+            if (!window.barbuAdjustData) window.barbuAdjustData = {};
+            if (!window.barbuAdjustData[sub]) window.barbuAdjustData[sub] = [];
+            window.barbuAdjustData[sub].push(sel);
+
+            sel.addEventListener('change', () => {
+              adjustBarbuSelects(sub, totalCount);
+              validateForm();
+            });
+            item.append(label, sel);
+          } else if (sub === 'King of Spades') {
+            const rd = document.createElement('input');
+            rd.type = 'radio';
+            rd.name = 'barbu-king-spade';
+            rd.value = p;
+            rd.addEventListener('change', validateForm);
+            rd.dataset.contract = 'King of Spades'; // ✅ Ensure this is set
+          
+            const label = document.createElement('label');
+            label.style.fontWeight = 'normal';
+            label.dataset.player = p;
+            label.innerHTML = `${EMOJI[sub]} ${sub} `;
+            label.append(rd); // ✅ Move radio button to the right
+          
+            item.append(label);
+          }
+          
+          else if (sub === 'Last Two Tricks') {
+            const sel = makeSelect(['None', 'Pre-last', 'Last', 'Both']);
+            sel.dataset.contract = sub;
+            barbuLTTSelects.push(sel);
+            item.append(label, sel);
+          }
+
+          block.append(item);
+        });
+      }
+
+      scoreGrid.append(block);
+    });
+
+    function adjustLTT(selects) {
       const values = selects.map(dd => dd.value);
-    
       selects.forEach(dd => {
         const current = dd.value;
         const others = selects.filter(x => x !== dd).map(x => x.value);
-    
-        const hasOtherPickedBoth = others.includes('Both');
-        const hasOtherPickedLastOrPrelast = others.includes('Last') || others.includes('Pre-last');
+
+        const hasBoth = others.includes('Both');
+        const hasPreOrLast = others.includes('Pre-last') || others.includes('Last');
         const preCount = values.filter(v => v === 'Pre-last').length;
         const lastCount = values.filter(v => v === 'Last').length;
-    
-        let options = ['None'];
-    
-        if (!hasOtherPickedLastOrPrelast && (!hasOtherPickedBoth || current === 'Both')) {
-          options.push('Both');
-        }
-        if (!hasOtherPickedBoth && (preCount < 1 || current === 'Pre-last')) {
-          options.push('Pre-last');
-        }
-        if (!hasOtherPickedBoth && (lastCount < 1 || current === 'Last')) {
-          options.push('Last');
-        }
-    
-        dd.innerHTML = options.map(o => `<option>${o}</option>`).join('');
-        if (!options.includes(current)) dd.value = 'None';
+
+        let opts = ['None'];
+        if (!hasPreOrLast && (!hasBoth || current === 'Both')) opts.push('Both');
+        if (!hasBoth && (preCount < 1 || current === 'Pre-last')) opts.push('Pre-last');
+        if (!hasBoth && (lastCount < 1 || current === 'Last')) opts.push('Last');
+
+        dd.innerHTML = opts.map(o => `<option>${o}</option>`).join('');
+        if (!opts.includes(current)) dd.value = 'None';
         else dd.value = current;
       });
+    }
+
+    function adjustBarbuSelects(sub, totalCount) {
+      const selects = window.barbuAdjustData[sub];
+      if (!selects) return;
     
-      validateForm();
-    }; 
+      const values = selects.map(sel => Number(sel.value) || 0);
+      const totalUsed = values.reduce((a, b) => a + b, 0);
     
-    selects.forEach(dd => dd.addEventListener('change', adjust));
+      selects.forEach((sel, i) => {
+        const current = values[i];
+        const max = totalCount - (totalUsed - current);
+        const selected = sel.value;
+    
+        sel.innerHTML = Array.from({ length: max + 1 }, (_, j) =>
+          `<option value="${j}">${j}</option>`
+        ).join('');
+        sel.value = selected > max ? max : selected;
+      });
+    }    
+
+    if (lttSelects.length) {
+      lttSelects.forEach(sel => sel.addEventListener('change', () => {
+        adjustLTT(lttSelects);
+        validateForm();
+      }));
+      adjustLTT(lttSelects);
+    }
+
+    if (barbuLTTSelects.length) {
+      barbuLTTSelects.forEach(sel => sel.addEventListener('change', () => {
+        adjustLTT(barbuLTTSelects);
+        validateForm();
+      }));
+      adjustLTT(barbuLTTSelects);
+    }
   }
 
-  else {
-    players.forEach(p => {
-      if (c === 'Domino') {
-        makeSelect(p, ['', '-100', '-50', '5', '10', '15', '20', '25']);
-      } else {
-        const w = document.createElement('div');
-        w.className = 'score-item';
-        const lbl = document.createElement('label');
-        lbl.textContent = p;
-        w.append(lbl);
-        const inp = document.createElement('input');
-        inp.type = 'number';
-        inp.min = 0;
-        inp.value = 0;
-        inp.addEventListener('input', validateForm);
-        w.append(inp);
-        scoreGrid.append(w);
-      }
-    });
-  }
-
-  Array.from(scoreGrid.querySelectorAll('select,input')).forEach(el =>
-    el.addEventListener('change', validateForm)
-  );
   addBtn.onclick = submitRound;
+  validateForm();
 }
 
 
@@ -391,42 +504,65 @@ function validateForm() {
   const c = contractSel.value;
   let ok = true;
 
-  const counts = Array.from(scoreGrid.querySelectorAll('select,input')).map(el => {
-    if (c === 'King of Spades' && el.type === 'radio')
-      return el.checked ? 1 : 0;
-    if (el.tagName === 'SELECT') {
-      if (c === 'Last Two Tricks') {
-        if (el.value === 'Both') return 120;
-        if (el.value === 'Last') return 80;
-        if (el.value === 'Pre-last') return 40;
-        return 0;
-      }
-      return Number(el.value) || 0;
-    }
-    return Number(el.value) || 0;
-  });
-
   const sum = arr => arr.reduce((a, b) => a + b, 0);
 
   if (['Hearts', 'Queens', 'Tricks'].includes(c)) {
-    let req = (c === 'Hearts')
+    const counts = Array.from(scoreGrid.querySelectorAll('select'))
+      .map(el => Number(el.value) || 0);
+    const required = c === 'Hearts'
       ? ([4,5].includes(players.length) ? 13 : 12)
-      : (c === 'Queens' ? 4 : {3:16, 4:13, 5:10, 6:8}[players.length]);
-    if (sum(counts) !== req) ok = false;
+      : c === 'Queens'
+        ? 4
+        : {3:16, 4:13, 5:10, 6:8}[players.length];
+    if (sum(counts) !== required) ok = false;
   }
+
   else if (c === 'King of Spades') {
-    if (counts.filter(v => v === 1).length !== 1) ok = false;
+    const selected = scoreGrid.querySelectorAll('input[type=radio]:checked');
+    if (selected.length !== 1) ok = false;
   }
+
   else if (c === 'Last Two Tricks') {
-    if (sum(counts) !== 120) ok = false;
-  }
-  else if (c === 'Domino') {
-    const raw = Array.from(scoreGrid.querySelectorAll('select'))
-      .map(dd => Number(dd.value) || 0);
-    if (raw.filter(v => v === -100).length !== 1 || raw.filter(v => v === -50).length !== 1)
+    const counts = { 'Pre-last': 0, 'Last': 0, 'Both': 0 };
+    scoreGrid.querySelectorAll('select').forEach(sel => {
+      counts[sel.value] = (counts[sel.value] || 0) + 1;
+    });
+    const total = counts['Both'] * 120 + counts['Last'] * 80 + counts['Pre-last'] * 40;
+    if (total !== 120 || (counts['Both'] > 1 || (counts['Both'] === 0 && (counts['Pre-last'] !== 1 || counts['Last'] !== 1)))) {
       ok = false;
+    }
   }
-  // Barbu always OK
+
+  else if (c === 'Domino') {
+    const values = Array.from(scoreGrid.querySelectorAll('select')).map(sel => Number(sel.value) || 0);
+    if (values.filter(v => v === -100).length !== 1 || values.filter(v => v === -50).length !== 1) ok = false;
+  }
+
+  else if (c === 'Barbu') {
+    players.forEach(p => {
+      const container = scoreGrid.querySelector(`[data-player-group="${p}"]`);
+      if (!container) ok = false;
+
+      // Hearts / Queens / Tricks
+      ['Hearts', 'Queens', 'Tricks'].forEach(sub => {
+        if (!enabledContracts.includes(sub)) return;
+        const sel = container.querySelector(`select[data-contract="${sub}"]`);
+        if (!sel) ok = false;
+      });
+
+      // King of Spades
+      if (enabledContracts.includes('King of Spades')) {
+        const rd = scoreGrid.querySelector(`input[type="radio"][name="barbu-king-spade"]:checked`);
+        if (!rd) ok = false;
+      }
+
+      // Last Two Tricks
+      if (enabledContracts.includes('Last Two Tricks')) {
+        const sel = container.querySelector(`select[data-contract="Last Two Tricks"]`);
+        if (!sel || !['None', 'Pre-last', 'Last', 'Both'].includes(sel.value)) ok = false;
+      }
+    });
+  }
 
   addBtn.disabled = !ok;
 }
@@ -437,40 +573,84 @@ function submitRound() {
   const c = contractSel.value;
   const scores = {};
 
-  scoreGrid.querySelectorAll('select,input').forEach(el => {
-    let p, v = 0;
+  if (c !== 'Barbu') {
+    // Standard contract handling
+    scoreGrid.querySelectorAll('select,input').forEach(el => {
+      let p, v = 0;
 
-    if (c === 'King of Spades' && el.type === 'radio') {
-      p = el.value;
-      v = el.checked ? 80 : 0;
-    }
-    else if (el.tagName === 'SELECT') {
-      p = el.parentElement.querySelector('label').textContent;
-      if (c === 'Last Two Tricks') {
-        if (el.value === 'Both') v = 120;
-        else if (el.value === 'Last') v = 80;
-        else if (el.value === 'Pre-last') v = 40;
-        else v = 0;
-      } else {
-        v = Number(el.value) || 0;
-        if (c === 'Hearts') v *= 10;
-        else if (c === 'Queens') v *= 30;
-        else if (c === 'Tricks') v *= 10;
+      if (c === 'King of Spades' && el.type === 'radio') {
+        p = el.value;
+        v = el.checked ? 80 : 0;
       }
-    }
-    else {
-      p = el.parentElement.querySelector('label').textContent;
-      v = Number(el.value) || 0;
-    }
+      else if (el.tagName === 'SELECT') {
+        const label = el.parentElement.querySelector('label');
+        p = label ? label.dataset.player : null;
+        if (!p) return;
 
-    scores[p] = (scores[p] || 0) + v;
-  });
+        if (c === 'Last Two Tricks') {
+          if (el.value === 'Both') v = 120;
+          else if (el.value === 'Last') v = 80;
+          else if (el.value === 'Pre-last') v = 40;
+        } else {
+          v = Number(el.value) || 0;
+          if (c === 'Hearts') v *= 10;
+          else if (c === 'Queens') v *= 30;
+          else if (c === 'Tricks') v *= 10;
+        }
+      }
+      else {
+        p = el.parentElement.querySelector('label').dataset.player;
+        const label = el.parentElement.querySelector('label');
+        p = label ? label.dataset.player : null;
+        if (!p) return;
+
+        v = Number(el.value) || 0;
+      }
+
+      scores[p] = (scores[p] || 0) + v;
+    });
+  }
+
+  else {
+    // Barbu special handling — iterate per player instead of per game
+    players.forEach(p => {
+      let total = 0;
+
+      const container = scoreGrid.querySelector(`[data-player-group="${p}"]`);
+      if (!container) return;
+
+      // Hearts / Queens / Tricks
+      ['Hearts', 'Queens', 'Tricks'].forEach(sub => {
+        const select = container.querySelector(`select[data-contract="${sub}"]`);
+        if (!select) return;
+        const val = Number(select.value) || 0;
+        const multiplier = sub === 'Hearts' ? 10 : sub === 'Queens' ? 30 : 10;
+        total += val * multiplier;
+      });
+
+      // King of Spades
+      const kingRadio = scoreGrid.querySelector(`input[type="radio"][name="barbu-king-spade"]:checked`);
+      if (kingRadio && kingRadio.value === p) total += 80;
+
+      // Last Two Tricks
+      const lastSel = container.querySelector(`select[data-contract="Last Two Tricks"]`);
+      if (lastSel) {
+        const v = lastSel.value;
+        if (v === 'Both') total += 120;
+        else if (v === 'Last') total += 80;
+        else if (v === 'Pre-last') total += 40;
+      }
+
+      scores[p] = Math.floor(total / 2); // ✅ halve for Barbu
+    });
+  }
 
   rounds.push({
     dealer: players[currentDealerIndex],
     contract: c,
     scores
   });
+
   currentDealerIndex = (currentDealerIndex + 1) % players.length;
   saveState();
 
@@ -479,7 +659,6 @@ function submitRound() {
   appendRow();
   nextRound();
 }
-
 
 // — Append One Row to the Table —
 function appendRow() {
