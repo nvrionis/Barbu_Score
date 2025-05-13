@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,10 +12,17 @@
   <!-- STICKY TOP BAR -->
   <header id="top-bar">
     <div id="player-info"></div>
-    <button id="clear-data" class="reset-btn">Reset Game</button>
+
+    <div id="header-controls">
+      <button id="export-btn">Export Game</button>
+      <button id="import-btn">Import Game</button>
+      <button id="info-btn">Info</button>
+      <button id="clear-data" class="reset-btn">Reset Game</button>
+      <input type="file" id="import-input" accept="application/json" />
+    </div>
   </header>
 
-  <!-- GAME SETUP -->
+  <!-- SETUP SCREEN -->
   <section id="setup-screen" class="section">
     <h1>Game Setup</h1>
     <form id="setup-form">
@@ -24,7 +32,7 @@
     </form>
   </section>
 
-  <!-- GAMEPLAY -->
+  <!-- GAME SCREEN -->
   <section id="game-screen" class="hidden section">
     <div class="new-round-form">
       <div class="dealer-display">
@@ -36,7 +44,7 @@
       <button id="add-round" class="primary-btn" disabled>Submit Round</button>
     </div>
 
-    <!-- PROGRESS TABLE (✅ vs ⭕) -->
+    <!-- PROGRESS TABLE -->
     <table id="progress-grid" class="progress-table">
       <thead><tr></tr></thead>
       <tbody></tbody>
@@ -51,18 +59,57 @@
     </table>
   </section>
 
-<!-- END SCREEN -->
-<section id="end-screen" class="hidden section">
-  <h2>Game Over</h2>
+  <!-- END SCREEN -->
+  <section id="end-screen" class="hidden section">
+    <h2>Game Over</h2>
+    <div id="winner-announcement" class="winner-announcement"></div>
+    <div id="podium" class="podium"></div>
+    <button id="reset-game" class="primary-btn">Restart</button>
+  </section>
 
-  <!-- Winner announcement placeholder -->
-  <div id="winner-announcement" class="winner-announcement"></div>
+  <!-- INFO SCREEN -->
+  <div id="info-screen" class="hidden">
+    <div class="info-content">
+      <h2>Barbu: Rules and Instructions</h2>
+      <p>Barbu is a classic trick‐taking card game played with a standard deck of 52 cards. The game is known for its dynamic gameplay, as players navigate through different contracts with varying objectives and scoring rules. The goal is to end the game with the <strong>lowest total score</strong>.</p>
+      <hr/>
 
-  <!-- Podium and “other” list -->
-  <div id="podium" class="podium"></div>
+      <h3>Players and Setup</h3>
+      <ul>
+        <li><strong>Number of Players:</strong> 3 to 6 (4 is optimal)</li>
+        <li>Each player will be the <strong>dealer</strong> in rotation.</li>
+        <li>Every player must play each contract <strong>exactly once</strong>.</li>
+        <li>The number of rounds is equal to the <strong>number of contracts × number of players</strong>.</li>
+        <li>Players can choose which contracts to include, but all must select the <strong>same set of contracts</strong>.</li>
+      </ul>
+      <hr/>
 
-  <button id="reset-game" class="primary-btn">Restart</button>
-</section>
+      <h3>Contracts (Mini-Games)</h3>
+      <p>Barbu is played over <strong>7 distinct contracts</strong>, each with its own rules and scoring system:</p>
+      <ol>
+        <li>King of Spades</li>
+        <li>Hearts</li>
+        <li>Queens</li>
+        <li>Tricks</li>
+        <li>Last Two Tricks</li>
+        <li>Domino</li>
+        <li>Barbu</li>
+      </ol>
+      <p>Each contract is played separately, except for <strong>Barbu</strong>, which combines multiple rules.</p>
+      <hr/>
+
+      <!-- ... (rest of your rules as before) ... -->
+
+      <h3>Strategy Tips</h3>
+      <ul>
+        <li><strong>Plan Ahead:</strong> Keep track of remaining contracts.</li>
+        <li><strong>Be Flexible:</strong> Adapt strategy to the current contract.</li>
+        <li><strong>Avoid Risk:</strong> Especially in Barbu rounds.</li>
+        <li><strong>Watch Opponents:</strong> Anticipate traps in King of Spades and Queens.</li>
+      </ul>
+    </div>
+    <button id="close-info-btn" class="primary-btn">Close</button>
+  </div>
 
   <script src="app.js"></script>
 </body>

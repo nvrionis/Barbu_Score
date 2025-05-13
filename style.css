@@ -1,12 +1,13 @@
+/* style.css */
 /* ============================= */
 /*        COLOR PALETTE         */
 /* ============================= */
 :root {
-  --bg: #181818;           /* Slightly lighter dark background */
-  --surface: #1e1e1e;      /* Elevated surface panels */
-  --text-primary: #e0e0e0; /* Main text color */
-  --accent1: hsl(275, 90%, 55%); /* Softer purple */
-  --accent2: #ff9800;      /* Warm orange for secondary highlights */
+  --bg: #181818;
+  --surface: #1e1e1e;
+  --text-primary: #e0e0e0;
+  --accent1: hsl(275, 90%, 55%);
+  --accent2: #ff9800;
 }
 
 /* ============================= */
@@ -21,8 +22,10 @@ body {
   font-family: sans-serif;
   background: var(--bg);
   color: var(--text-primary);
-  padding-top: 3.5rem; /* for sticky header */
+  padding-top: 3.5rem;
 }
+
+
 
 /* ============================= */
 /*      STICKY TOP BAR          */
@@ -72,6 +75,32 @@ header#top-bar {
 .reset-btn:hover {
   background: var(--text-primary);
   color: var(--bg);
+}
+
+
+#header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#header-controls button {
+  background: var(--accent1);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.3rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#header-controls button:hover {
+  background: hsl(275, 90%, 45%);
+}
+
+/* hide the actual file input; it's triggered by the “Import Game” button */
+#header-controls input[type="file"] {
+  display: none;
 }
 
 /* ============================= */
@@ -423,4 +452,78 @@ header#top-bar {
   flex-wrap: wrap;
   gap: 1.25rem;
   justify-content: center;
+}
+
+/* ============================= */
+/*          INFO SCREEN         */
+/* ============================= */
+#info-screen {
+  position: fixed;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  max-width: 800px;
+  width: 90%;
+  max-height: 80%;
+  overflow-y: auto;
+  z-index: 1000;
+}
+#info-screen.hidden {
+  display: none;
+}
+#info-screen .info-content h2,
+#info-screen .info-content h3 {
+  color: var(--accent2);
+  margin-top: 1rem;
+}
+#info-screen .info-content hr {
+  border: 1px solid #333;
+  margin: 1rem 0;
+}
+#info-screen .info-content ul,
+#info-screen .info-content ol {
+  margin-left: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+/* ============================= */
+/*          Edit Button        */
+/* ============================= */
+/* Make the edit-btn a tappable circle with press feedback */
+.edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  transition: background 0.2s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent; /* no native highlight */
+}
+
+.edit-btn:active {
+  /* on touch/click, slightly darken & shrink */
+  background: rgba(255,255,255,0.1);
+  transform: scale(0.9);
+}
+
+.edit-btn:focus {
+  /* when focused (e.g. via keyboard), show a ring */
+  outline: 2px solid var(--accent1);
+  outline-offset: 2px;
+}
+
+/* ============================= */
+/*          Dealer Emoji       */
+/* ============================= */
+.dealer-emoji {
+  opacity: 0;
+  animation: fade-in 0.6s forwards;
 }
