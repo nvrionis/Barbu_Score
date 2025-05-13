@@ -78,19 +78,25 @@ header#top-bar {
 }
 
 
+/* ——— Header Controls (Export / Import / Info / Reset) ——— */
 #header-controls {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;        /* wrap onto new lines on narrow screens */
   gap: 0.5rem;
+  max-width: 100%;
+  overflow-x: auto;       /* allow scrolling if it still overflows */
+  padding: 0 1rem;
 }
 
 #header-controls button {
   background: var(--accent1);
   color: #fff;
   border: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 0.3rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
   cursor: pointer;
+  flex: 0 1 auto;         /* allow shrinking but don’t stretch */
+  white-space: nowrap;    /* no wrapping inside a button */
   transition: background 0.2s;
 }
 
@@ -98,9 +104,13 @@ header#top-bar {
   background: hsl(275, 90%, 45%);
 }
 
-/* hide the actual file input; it's triggered by the “Import Game” button */
+/* hide the actual file input */
 #header-controls input[type="file"] {
   display: none;
+}
+
+#header-controls button:hover {
+  background: hsl(275, 90%, 45%);
 }
 
 /* ============================= */
