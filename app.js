@@ -315,6 +315,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // — Render Round Table Header —
+// function renderTableHeader() {
+//   const row = document.getElementById('round-table-header');
+//   row.innerHTML =
+//     '<th>#</th>' +
+//     '<th>Dealer</th>' +
+//     '<th>🎮</th>' +
+//     players.map(p => `<th>${p}</th>`).join('') +
+//     '<th>Edit</th>';
+// }
+
 function renderTableHeader() {
   const row = document.getElementById('round-table-header');
   row.innerHTML =
