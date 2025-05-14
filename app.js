@@ -321,7 +321,11 @@ function renderTableHeader() {
     '<th>#</th>' +
     '<th>Dealer</th>' +
     '<th>🎮</th>' +
-    players.map(p => `<th>${p}</th>`).join('') +
+    players.map(p => {
+      // if the player is “Τσιφ” (Greek) or “Tsif” (Latin), append a fox
+      const fox = (p === 'Τσιφ' || p === 'Tsif') ? ' 🦊' : '';
+      return `<th>${p}${fox}</th>`;
+    }).join('') +
     '<th>Edit</th>';
 }
 
