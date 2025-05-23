@@ -22,7 +22,7 @@ body {
   font-family: sans-serif;
   background: var(--bg);
   color: var(--text-primary);
-  padding-top: 3.5rem;
+  padding-top: 4rem;
 }
 
 
@@ -32,11 +32,19 @@ body {
 /* ============================= */
 /* Top bar container is now multi‐line on mobile */
 header#top-bar {
+  position: sticky;    /* or `fixed` if you never want it to move */
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;       /* above everything else */
+  
   display: flex;
-  flex-wrap: wrap;        /* allow wrapping onto new lines */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 1rem;
+  background: var(--surface);
 }
 
 /* All controls line up nicely, wrap if needed */
@@ -49,13 +57,40 @@ header#top-bar {
   overflow-x: auto;       /* horizontal scroll if truly too many */
 }
 
-/* Make buttons compact and unbreakable */
-#header-controls button {
+/* Only fill the non-icon buttons */
+#header-controls button:not(.icon-btn) {
+  background: var(--accent1);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
   flex: 0 1 auto;
   white-space: nowrap;
-  font-size: 0.9rem;
-  padding: 0.4rem 0.8rem;
+  transition: background 0.2s;
 }
+#header-controls button:not(.icon-btn):hover {
+  background: hsl(275, 90%, 45%);
+}
+
+
+
+/* Icon-only buttons (no purple fill) */
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent1);
+  padding: 0.5rem;       /* big enough for tapping */
+  font-size: 1.2rem;     /* emoji size */
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+/* subtle press feedback */
+.icon-btn:active {
+  background: rgba(127, 0, 255, 0.15);
+}
+
 
 /* On very small screens, stack vertically */
 @media (max-width: 480px) {
@@ -115,30 +150,14 @@ header#top-bar {
   padding: 0 1rem;
 }
 
-#header-controls button {
-  background: var(--accent1);
-  color: #fff;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  flex: 0 1 auto;         /* allow shrinking but don’t stretch */
-  white-space: nowrap;    /* no wrapping inside a button */
-  transition: background 0.2s;
-}
-
-#header-controls button:hover {
-  background: hsl(275, 90%, 45%);
-}
 
 /* hide the actual file input */
 #header-controls input[type="file"] {
   display: none;
 }
 
-#header-controls button:hover {
-  background: hsl(275, 90%, 45%);
-}
+
+
 
 /* ============================= */
 /*    TOP-BAR SCORE HIERARCHY    */

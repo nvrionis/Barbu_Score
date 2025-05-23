@@ -950,7 +950,14 @@ function startEditRound(idx) {
   // 5) Update the button and re-validate
   addBtn.textContent = 'Save Changes';
   validateForm();
+
+  // 6) Center‐scroll the score inputs and focus the first control
+  scoreGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const firstControl = scoreGrid.querySelector('select, input[type="radio"]');
+  if (firstControl) firstControl.focus({ preventScroll: true });
+
 }
+
 
 
 // — Game Over & Podium Screen —
