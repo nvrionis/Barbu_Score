@@ -390,6 +390,19 @@ function nextRound() {
   validateForm();
 }
 
+
+// — Helper: total “raw” points for each contract —
+function getTotalForContract(c) {
+  switch (c) {
+    case 'Hearts':          return (players.length <= 4 ? 13 : 12) * 10;
+    case 'Queens':          return 4 * 30;
+    case 'Tricks':          return ({3:16,4:13,5:10,6:8}[players.length] * 10);
+    case 'Last Two Tricks': return 40 + 80;
+    default:                 return 0;
+  }
+}
+
+
 // — Build Score Inputs for Selected Contract —
 function buildScoreInputs() {
   window.barbuAdjustData = {}; // Reset adjustment registry
@@ -441,6 +454,25 @@ function buildScoreInputs() {
       const item = document.createElement('div');
       item.className = 'score-item';
       item.append(label, sel);
+
+      // —— ADD THIS ⚡ BUTTON —— //
+      const rem = document.createElement('button');
+      rem.type = 'button';
+      rem.textContent = '⚡';
+      rem.title = 'Give me the rest';
+      rem.className = 'assign-rest-btn';
+      rem.addEventListener('click', () => {
+        // sum up the *card counts* others have chosen
+        const usedCount = selects
+          .filter(s2 => s2 !== sel)
+          .reduce((sum, s2) => sum + Number(s2.value), 0);
+        const restCount = totalCount - usedCount;
+        sel.value = restCount;
+        sel.dispatchEvent(new Event('change'));
+      });
+      item.append(rem);
+      // —— end “give me the rest” —— //
+
       block.append(item);
       scoreGrid.append(block);
     });
@@ -500,21 +532,74 @@ function buildScoreInputs() {
         const item = document.createElement('div');
         item.className = 'score-item';
         item.append(label, sel);
+
+        // —— ADD ⚡ BUTTON —— //
+        const remLTT = document.createElement('button');
+        remLTT.type = 'button';
+        remLTT.textContent = '⚡';
+        remLTT.title = 'Give me the rest';
+        remLTT.className = 'assign-rest-btn';
+        remLTT.addEventListener('click', () => {
+          // sum other LTT selects
+          const mapping = { 'None':0, 'Pre-last':40, 'Last':80, 'Both':120 };
+          const used = lttSelects
+            .filter(s2 => s2 !== sel)
+            .reduce((sum, s2) => sum + mapping[s2.value], 0);
+          const remPts = 120 - used;
+          const inv = { 0:'None', 40:'Pre-last', 80:'Last', 120:'Both' };
+          sel.value = inv[remPts];
+          sel.dispatchEvent(new Event('change'));
+        });
+        item.append(remLTT);
+        // —— end LTT rest —— //
+
         block.append(item);
       }
 
       else if (c === 'Domino') {
+        const item = document.createElement('div');
+        item.className = 'score-item';
+      
+        // 1) Domino label
         const label = document.createElement('label');
         label.textContent = `${EMOJI[c]} ${c}`;
         label.dataset.player = p;
-        const sel = makeSelect(['', '-100', '-50', '5', '10', '15', '20', '25']);
-        sel.addEventListener('change', validateForm);
-
-        const item = document.createElement('div');
-        item.className = 'score-item';
-        item.append(label, sel);
+        item.append(label);
+      
+        // 2) “First” radio
+        const firstRd = document.createElement('input');
+        firstRd.type = 'radio';
+        firstRd.name = 'domino-first';
+        firstRd.value = p;
+        firstRd.addEventListener('change', validateForm);
+        const firstLab = document.createElement('label');
+        firstLab.textContent = '1st';
+        firstLab.append(firstRd);
+        item.append(firstLab);
+      
+        // 3) “Second” radio
+        const secondRd = document.createElement('input');
+        secondRd.type = 'radio';
+        secondRd.name = 'domino-second';
+        secondRd.value = p;
+        secondRd.addEventListener('change', validateForm);
+        const secondLab = document.createElement('label');
+        secondLab.textContent = '2nd';
+        secondLab.append(secondRd);
+        item.append(secondLab);
+      
+        // 4) “Cards Left” dropdown
+        const maxCards = 10; // or whatever maximum you want
+        const cardSel = makeSelect(
+          Array.from({ length: maxCards + 1 }, (_, i) => i)
+        );
+        cardSel.dataset.player = p;         // ← **Important**: ensure this line exists
+        cardSel.addEventListener('change', validateForm);
+        item.append(cardSel);
+      
         block.append(item);
       }
+      
 
       else if (c === 'Barbu') {
         block.dataset.playerGroup = p;
@@ -543,6 +628,26 @@ function buildScoreInputs() {
               validateForm();
             });
             item.append(label, sel);
+
+            // —— ADD ⚡ for Barbu sub-contract —— //
+            const remB = document.createElement('button');
+            remB.type = 'button';
+            remB.textContent = '⚡';
+            remB.title = 'Give me the rest';
+            remB.className = 'assign-rest-btn';
+            remB.addEventListener('click', () => {
+              // sum up the *card counts* others have chosen for this subgame
+              const list = window.barbuAdjustData[sub];
+              const usedCount = list
+                .filter(s2 => s2 !== sel)
+                .reduce((sum, s2) => sum + Number(s2.value), 0);
+              const restCount = totalCount - usedCount;
+              sel.value = restCount;
+              sel.dispatchEvent(new Event('change'));
+            });
+            item.append(remB);
+            // —— end Barbu rest —— //
+            
           } else if (sub === 'King of Spades') {
             const rd = document.createElement('input');
             rd.type = 'radio';
@@ -561,11 +666,36 @@ function buildScoreInputs() {
           }
           
           else if (sub === 'Last Two Tricks') {
-            const sel = makeSelect(['None', 'Pre-last', 'Last', 'Both']);
+            const sel = makeSelect(['None','Pre-last','Last','Both']);
             sel.dataset.contract = sub;
             barbuLTTSelects.push(sel);
+          
+            const item = document.createElement('div');
+            item.className = 'score-item';
             item.append(label, sel);
+          
+            // ⚡ rest button
+            const rem = document.createElement('button');
+            rem.type = 'button';
+            rem.textContent = '⚡';
+            rem.title = 'Give me the rest';
+            rem.className = 'assign-rest-btn';
+            rem.addEventListener('click', () => {
+              const mapping = { 'None': 0, 'Pre-last': 40, 'Last': 80, 'Both': 120 };
+              let used = 0;
+              barbuLTTSelects.forEach(s2 => {
+                if (s2 !== sel) used += mapping[s2.value] || 0;
+              });
+              const remPts = 120 - used;
+              const inv = { 0: 'None', 40: 'Pre-last', 80: 'Last', 120: 'Both' };
+              sel.value = inv[remPts] || 'None';
+              sel.dispatchEvent(new Event('change'));
+            });
+            item.append(rem);
+          
+            block.append(item);
           }
+          
 
           block.append(item);
         });
@@ -672,14 +802,33 @@ function validateForm() {
     ) ok = false;
   }
   else if (c === 'Domino') {
-    const vals = Array.from(scoreGrid.querySelectorAll('select'))
-      .map(el => Number(el.value) || 0);
-    if (
-      vals.filter(v => v === -100).length !== 1 ||
-      vals.filter(v => v === -50 ).length !== 1
-    ) ok = false;
+    // 1) Exactly one “first”
+    const firstCount  = scoreGrid.querySelectorAll('input[name="domino-first"]:checked').length;
+    // 2) Exactly one “second”
+    const secondCount = scoreGrid.querySelectorAll('input[name="domino-second"]:checked').length;
+    if (firstCount !== 1 || secondCount !== 1) {
+      ok = false;
+    } else {
+      // 3) Ensure the same player is not both 1st and 2nd
+      const fSel = scoreGrid.querySelector('input[name="domino-first"]:checked');
+      const sSel = scoreGrid.querySelector('input[name="domino-second"]:checked');
+      if (fSel.value === sSel.value) {
+        ok = false;
+      } else {
+        // 4) Every “other” player (not 1st or 2nd) must choose at least 1 card left
+        players.forEach(p => {
+          if (p !== fSel.value && p !== sSel.value) {
+            const cs = scoreGrid.querySelector(`select[data-player="${p}"]`);
+            // if the dropdown is missing or value is 0 → invalid
+            if (!cs || Number(cs.value) < 1) {
+              ok = false;
+            }
+          }
+        });
+      }
+    }
   }
-
+  
   // 2) Barbu (multi‐contract) round
   else if (c === 'Barbu') {
     // Hearts
@@ -741,33 +890,74 @@ function submitRound() {
   const c = contractSel.value;
   const scores = {};
 
-  if (c !== 'Barbu') {
-    // Standard contract handling
-    scoreGrid.querySelectorAll('select,input').forEach(el => {
-      let p, v = 0;
+  // ─── Domino branch ───
+  if (c === 'Domino') {
+    // For Domino, we expect:
+    //  • exactly one radio named "domino-first" checked → that player gets -100
+    //  • exactly one radio named "domino-second" checked → that player gets -50
+    //  • every other player has a <select data-player="PlayerName"> for #cards-left
+    players.forEach(p => {
+      let v = 0;
 
+      // 1) Was this player chosen as "1st"?
+      const firstRadio = scoreGrid.querySelector(`input[name="domino-first"][value="${p}"]`);
+      // 2) Was this player chosen as "2nd"?
+      const secondRadio = scoreGrid.querySelector(`input[name="domino-second"][value="${p}"]`);
+      // 3) The "cards left" dropdown must have data-player="${p}"
+      const cardSelect = scoreGrid.querySelector(`select[data-player="${p}"]`);
+
+      if (firstRadio && firstRadio.checked) {
+        v = -100;
+      }
+      else if (secondRadio && secondRadio.checked) {
+        v = -50;
+      }
+      else if (cardSelect) {
+        // cost = 5 × (#cards left)
+        const cardsLeft = Number(cardSelect.value) || 0;
+        v = cardsLeft * 5;
+      } else {
+        // If somehow the dropdown is missing, treat as 0 cards left
+        v = 0;
+      }
+
+      scores[p] = v;
+    });
+  }
+
+  // ─── Non-Barbu, non-Domino contracts (Hearts, Queens, Tricks, King of Spades, Last Two Tricks) ───
+  else if (c !== 'Barbu') {
+    scoreGrid.querySelectorAll('select,input').forEach(el => {
+      let p = null, v = 0;
+
+      // King of Spades (single‐contract)
       if (c === 'King of Spades' && el.type === 'radio') {
         p = el.value;
         v = el.checked ? 80 : 0;
       }
+      // Heart/Queen/Tricks/Last Two Tricks dropdowns will also be <select> here
       else if (el.tagName === 'SELECT') {
+        // Find associated player via the <label> sibling
         const label = el.parentElement.querySelector('label');
         p = label ? label.dataset.player : null;
         if (!p) return;
 
         if (c === 'Last Two Tricks') {
-          if (el.value === 'Both') v = 120;
+          if (el.value === 'Both')      v = 120;
           else if (el.value === 'Last') v = 80;
           else if (el.value === 'Pre-last') v = 40;
+          else                           v = 0;
         } else {
-          v = Number(el.value) || 0;
-          if (c === 'Hearts') v *= 10;
-          else if (c === 'Queens') v *= 30;
-          else if (c === 'Tricks') v *= 10;
+          // Hearts / Queens / Tricks → multiply by appropriate factor
+          const raw = Number(el.value) || 0;
+          if (c === 'Hearts')    v = raw * 10;
+          else if (c === 'Queens')  v = raw * 30;
+          else if (c === 'Tricks')  v = raw * 10;
         }
       }
+      // (This branch catches any stray inputs other than King‐of‐Spades radios)
       else {
-        p = el.parentElement.querySelector('label').dataset.player;
+        // It’s probably a dropdown or leftover; just in case, fetch its player
         const label = el.parentElement.querySelector('label');
         p = label ? label.dataset.player : null;
         if (!p) return;
@@ -779,57 +969,60 @@ function submitRound() {
     });
   }
 
+  // ─── Barbu round (multi-contract) ───
   else {
-    // Barbu special handling — iterate per player instead of per game
     players.forEach(p => {
       let total = 0;
-
+      // find the container for this player’s Barbu inputs
       const container = scoreGrid.querySelector(`[data-player-group="${p}"]`);
       if (!container) return;
 
-      // Hearts / Queens / Tricks
-      ['Hearts', 'Queens', 'Tricks'].forEach(sub => {
-        const select = container.querySelector(`select[data-contract="${sub}"]`);
-        if (!select) return;
-        const val = Number(select.value) || 0;
-        const multiplier = sub === 'Hearts' ? 10 : sub === 'Queens' ? 30 : 10;
-        total += val * multiplier;
+      // 1) Hearts / Queens / Tricks sub-selects
+      ['Hearts','Queens','Tricks'].forEach(sub => {
+        const sel = container.querySelector(`select[data-contract="${sub}"]`);
+        if (!sel) return;
+        const raw = Number(sel.value) || 0;
+        const factor = (sub === 'Hearts') ? 10
+                     : (sub === 'Queens') ? 30
+                     : /* Tricks */ 10;
+        total += raw * factor;
       });
 
-      // King of Spades
+      // 2) King of Spades sub-radio
       const kingRadio = scoreGrid.querySelector(`input[type="radio"][name="barbu-king-spade"]:checked`);
       if (kingRadio && kingRadio.value === p) total += 80;
 
-      // Last Two Tricks
-      const lastSel = container.querySelector(`select[data-contract="Last Two Tricks"]`);
-      if (lastSel) {
-        const v = lastSel.value;
-        if (v === 'Both') total += 120;
-        else if (v === 'Last') total += 80;
-        else if (v === 'Pre-last') total += 40;
+      // 3) Last Two Tricks sub-select
+      const lttSel = container.querySelector(`select[data-contract="Last Two Tricks"]`);
+      if (lttSel) {
+        if (lttSel.value === 'Both')      total += 120;
+        else if (lttSel.value === 'Last') total += 80;
+        else if (lttSel.value === 'Pre-last') total += 40;
       }
 
-      scores[p] = Math.floor(total / 2); // ✅ halve for Barbu
+      // Halve for Barbu
+      scores[p] = Math.floor(total / 2);
     });
   }
 
+  // ─── Insert or Update the Round ───
   if (editIndex !== null) {
-    // overwrite that round
+    // Overwrite an existing round in “edit” mode:
     const oldDealer = rounds[editIndex].dealer;
     rounds[editIndex] = { dealer: oldDealer, contract: c, scores };
     editIndex = null;
     saveState();
 
-    // re-render everything
     renderTopBar();
     renderProgressGrid();
     renderRounds();
 
-    // back to “new round” form for the same dealer
+    // Return to “new round” for the same dealer
     addBtn.textContent = 'Submit Round';
     nextRound();
-  } else {
-    // original “push new round” path
+  }
+  else {
+    // Normal “append a new round” path
     rounds.push({
       dealer: players[currentDealerIndex],
       contract: c,
@@ -840,10 +1033,11 @@ function submitRound() {
 
     renderTopBar();
     renderProgressGrid();
-    appendRow();   // fast‐append the one new row
+    appendRow();
     nextRound();
   }
 }
+
 
 // — Append One Row to the Table — 
 function appendRow() {
