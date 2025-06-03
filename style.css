@@ -613,3 +613,37 @@ header#top-bar {
     padding-top: 6rem; /* or whatever total height your top-bar becomes on mobile */
   }
 }
+
+/* ----------------------------------------- */
+/*   CONTRACT “pill” toggle: add a check ✓   */
+/* ----------------------------------------- */
+
+/* 1) Base: every <span> in .contract-toggle gets some padding on the left */
+.contract-toggle label span {
+  position: relative;
+  padding-left: 1.5em; /* leave room for the checkmark */
+}
+
+/* 2) When the <input> is checked, insert “✓” before the text */
+.contract-toggle input:checked + span::before {
+  content: '✓';
+  position: absolute;
+  left: 0.4em;       /* adjust so the check sits just inside the left edge */
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9em;  /* match your pill text size */
+  color: #fff;       /* or whatever contrast color you prefer */
+}
+
+/* 3) (Optional) When unchecked, you could insert an “×” instead—uncomment if desired */
+/*
+.contract-toggle input:not(:checked) + span::before {
+  content: '×';
+  position: absolute;
+  left: 0.4em;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9em;
+  color: var(--text-primary);
+}
+*/

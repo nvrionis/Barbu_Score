@@ -122,23 +122,36 @@ function initSetup() {
   // Handle start
   setupForm.onsubmit = e => {
     e.preventDefault();
-    players = Array.from(
-      pnContainer.querySelectorAll('input')
-    ).map(i => i.value.trim()).filter(v => v);
+    // 1) Gather and trim names
+    players = Array.from(pnContainer.querySelectorAll('input'))
+      .map(i => i.value.trim())
+      .filter(v => v);
+  
+    // 2) Check count
     if (players.length < 3 || players.length > 6) {
       return alert('Enter between 3 and 6 player names.');
     }
+  
+    // 3) Reject duplicate names
+    const uniqueCount = new Set(players).size;
+    if (uniqueCount !== players.length) {
+      return alert('Each player must have a unique name.');
+    }
+  
+    // 4) Proceed with contracts
     enabledContracts = Array.from(
       ctContainer.querySelectorAll('input[type=checkbox]')
     ).filter(cb => cb.checked).map(cb => cb.value);
     if (!enabledContracts.length) {
       return alert('Select at least one contract.');
     }
+  
     rounds = [];
     currentDealerIndex = 0;
     saveState();
     initGame();
   };
+  
 }
 
 // — Start Game —
