@@ -179,6 +179,41 @@ function initGame() {
   renderRounds();
 }
 
+// — Rename Player Helper (preserve all past scores) —
+function startRename(idx) {
+  const oldName = players[idx];
+  const input   = prompt('New name for player:', oldName);
+  if (!input || !input.trim() || input.trim() === oldName) return;
+  const newName = input.trim();
+
+  // 1) Update players array
+  players[idx] = newName;
+
+  // 2) Propagate into every round
+  rounds.forEach(r => {
+    // rename dealer
+    if (r.dealer === oldName) {
+      r.dealer = newName;
+    }
+    // rename score key
+    if (Object.prototype.hasOwnProperty.call(r.scores, oldName)) {
+      r.scores[newName] = r.scores[oldName];
+      delete r.scores[oldName];
+    }
+  });
+
+  // 3) Persist and re-render
+  saveState();
+  renderTableHeader();
+  renderTopBar();
+  renderProgressGrid();
+  // You don’t need to rebuild the input grid here if you’re mid-game,
+  // but it’s safe to do so:
+  buildScoreInputs();
+  renderRounds();
+}
+
+
 // — RENDER STICKY TOP BAR (with tie-aware ranking) —
 function renderTopBar() {
   // Compute total scores
@@ -327,17 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// — Render Round Table Header —
-// function renderTableHeader() {
-//   const row = document.getElementById('round-table-header');
-//   row.innerHTML =
-//     '<th>#</th>' +
-//     '<th>Dealer</th>' +
-//     '<th>🎮</th>' +
-//     players.map(p => `<th>${p}</th>`).join('') +
-//     '<th>Edit</th>';
-// }
-
 function renderTableHeader() {
   const row = document.getElementById('round-table-header');
   row.innerHTML =
@@ -351,6 +375,7 @@ function renderTableHeader() {
     }).join('') +
     '<th>Edit</th>';
 }
+
 
 
 // — Render Progress Grid (✅ vs ⭕) —
@@ -436,15 +461,27 @@ function buildScoreInputs() {
     return sel;
   }
 
-  function createPlayerBlock(p) {
+  function createPlayerBlock(p, idx) {
     const card = document.createElement('div');
     card.className = 'barbu-player-block';
 
-    const title = document.createElement('div');
+    const container = document.createElement('div');
+    container.className = 'player-title-container';
+
+    const title = document.createElement('span');
     title.className = 'player-title';
     title.textContent = p;
-    card.append(title);
+    title.dataset.index = idx;
 
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'edit-name-btn';
+    btn.title = 'Rename player';
+    btn.textContent = '✏️';
+    btn.addEventListener('click', () => startRename(idx));
+
+    container.append(title, btn);
+    card.append(container);
     return card;
   }
 
@@ -456,8 +493,8 @@ function buildScoreInputs() {
 
     const selects = [];
 
-    players.forEach(p => {
-      const block = createPlayerBlock(p);
+    players.forEach((p, i) => {
+      const block = createPlayerBlock(p, i);
       const label = document.createElement('label');
       label.textContent = `${EMOJI[c]} ${c}`;
       label.dataset.player = p;
@@ -511,8 +548,8 @@ function buildScoreInputs() {
     const lttSelects = [];
     const barbuLTTSelects = [];
 
-    players.forEach(p => {
-      const block = createPlayerBlock(p);
+    players.forEach((p, i) => {
+      const block = createPlayerBlock(p, i);
 
       if (c === 'King of Spades') {
         const rd = document.createElement('input');
