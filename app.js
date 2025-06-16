@@ -5,6 +5,8 @@ let players = [],
     currentDealerIndex = 0,
     prevRankOrder = [],
     editIndex = null;
+    let sassyEnabled = false;
+
 
 // — Elements —
 const setupScreen   = document.getElementById('setup-screen'),
@@ -66,7 +68,7 @@ function getDealerEmoji(r) {
 // — Persistence Helpers —
 function saveState() {
   localStorage.setItem('barbu',
-    JSON.stringify({ players, enabledContracts, rounds, currentDealerIndex })
+    JSON.stringify({ players, enabledContracts, rounds, currentDealerIndex,sassyEnabled })
   );
 }
 function loadState() {
@@ -81,6 +83,7 @@ function loadState() {
     currentDealerIndex = typeof data.currentDealerIndex === 'number'
                          ? data.currentDealerIndex
                          : 0;
+    sassyEnabled = Boolean(data.sassyEnabled);
   } else {
     localStorage.removeItem('barbu');
   }
@@ -148,6 +151,7 @@ function initSetup() {
   
     rounds = [];
     currentDealerIndex = 0;
+    sassyEnabled = document.getElementById('sassy-toggle').checked;
     saveState();
     initGame();
   };
@@ -177,7 +181,185 @@ function initGame() {
   renderProgressGrid();
   nextRound();
   renderRounds();
+  // initialize only the 4 needed counters…
+  players.forEach(p => {
+    triggerCounters.lastPlaceStreak[p] = 0;
+    triggerCounters.kingCount[p]       = 0;
+    triggerCounters.dominoWins[p]      = 0;
+    triggerCounters.lastPreLast[p]     = 0;
+  });
+  // …and reset every “fired” flag so quips can fire once
+  players.forEach(p => {
+    Object.keys(triggerFired).forEach(key => {
+      triggerFired[key][p] = false;
+    });
+  });
+
 }
+
+
+// pick & fire a random quip for a given event key + player name
+function fireSarcasm(key, name) {
+  if (!sassyEnabled) return;
+  const msgs = sarcasmConfig[key];
+  if (!msgs) return;
+  const text = msgs[Math.floor(Math.random() * msgs.length)];
+  alert(text.replace(/\{name\}/g, name));
+}
+
+function updateTriggers(r) {
+  // 1) Recompute cumulative totals (for diff200/diff400)
+  const totals = {};
+  players.forEach(p => totals[p] = 0);
+  rounds.forEach(rr => players.forEach(p => totals[p] += rr.scores[p] || 0));
+
+  const events = [];  // will hold { key, player } for each valid, unfired trigger
+
+  // 2) Score-difference triggers (lowest score is best)
+  const sortedLow = players.slice().sort((a,b) => totals[a] - totals[b]);
+  const leader   = sortedLow[0],
+        runnerUp = sortedLow[1],
+        diff     = totals[runnerUp] - totals[leader];
+
+  // huge lead first—only fires once ever
+  if (diff > 400 && !triggerFired.hugeLead4x[leader]) {
+    events.push({ key: 'hugeLead4x',  player: leader });
+  }
+  // then big lead—but only if we're not already past 400
+  else if (diff > 200 && diff <= 400 && !triggerFired.bigLead2x[leader]) {
+    events.push({ key: 'bigLead2x',   player: leader });
+  }
+
+  // 3) Last-place streak (highest score = worst)
+  const worst = players.slice()
+    .sort((a, b) => totals[b] - totals[a])[0];
+  players.forEach(p => {
+    triggerCounters.lastPlaceStreak[p] =
+      (p === worst)
+        ? triggerCounters.lastPlaceStreak[p] + 1
+        : 0;
+  });
+  const s = triggerCounters.lastPlaceStreak[worst];
+  if (s === 4  && !triggerFired.stuckLast4[worst])  events.push({key:'stuckLast4',  player:worst});
+  if (s === 8  && !triggerFired.stuckLast8[worst])  events.push({key:'stuckLast8',  player:worst});
+  if (s === 16 && !triggerFired.stuckLast16[worst]) events.push({key:'stuckLast16', player:worst});
+
+  // 4) King-of-Spades 3-in-a-row (must “take” 80)
+  if (r.contract === 'King of Spades') {
+    // who scored 80?
+    const taker = players.find(p => r.scores[p] === 80);
+    players.forEach(p => {
+      triggerCounters.kingCount[p] =
+        (p === taker)
+          ? triggerCounters.kingCount[p] + 1
+          : 0;
+    });
+    if (triggerCounters.kingCount[taker] === 3 && !triggerFired.kingOfSpades3[taker]) {
+      events.push({key:'kingOfSpades3', player:taker});
+    }
+  } else {
+    players.forEach(p => triggerCounters.kingCount[p] = 0);
+  }
+
+  // 5) Domino 3-in-a-row (negative score)
+  if (r.contract === 'Domino') {
+    players.forEach(p => {
+      triggerCounters.dominoWins[p] =
+        (r.scores[p] < 0)
+          ? triggerCounters.dominoWins[p] + 1
+          : 0;
+    });
+    players.forEach(p => {
+      if (triggerCounters.dominoWins[p] === 3 && !triggerFired.domino3x[p]) {
+        events.push({key:'domino3x', player:p});
+      }
+    });
+  } else {
+    players.forEach(p => triggerCounters.dominoWins[p] = 0);
+  }
+
+  // 6) Last- & Pre-Last 2-in-a-row
+  if (r.contract === 'Last Two Tricks') {
+    players.forEach(p => {
+      triggerCounters.lastPreLast[p] =
+        (r.scores[p] > 0)
+          ? triggerCounters.lastPreLast[p] + 1
+          : 0;
+    });
+    players.forEach(p => {
+      if (triggerCounters.lastPreLast[p] === 2 && !triggerFired.lastPreLast3[p]) {
+        events.push({key:'lastPreLast3', player:p});
+      }
+    });
+  } else {
+    players.forEach(p => triggerCounters.lastPreLast[p] = 0);
+  }
+
+  // 7) Per-round Hearts >10 cards
+  if (r.contract === 'Hearts') {
+    players.forEach(p => {
+      const cnt = (r.scores[p]||0) / 10;
+      if (cnt > 10 && !triggerFired.hearts10[p]) {
+        events.push({key:'hearts10', player:p});
+      }
+    });
+  }
+
+  // 8) per-round Tricks >10
+  if (r.contract === 'Tricks') {
+    players.forEach(p => {
+      const cnt = (r.scores[p]||0) / 10;
+      if (cnt > 10 && !triggerFired.tricks10[p]) {
+        events.push({key:'tricks10', player:p});
+      }
+    });
+  }
+
+  // 9) per-round Queens ==4
+  if (r.contract === 'Queens') {
+    players.forEach(p => {
+      const cnt = (r.scores[p]||0) / 30;
+      if (cnt === 4 && !triggerFired.queens4[p]) {
+        events.push({key:'queens4', player:p});
+      }
+    });
+  }
+
+  // — Barbu >90% of maximum possible in this round (any player) —
+  if (r.contract === 'Barbu') {
+    // compute the true raw maximum penalty
+    const totalRaw =
+      getTotalForContract('Hearts')       // max hearts penalty
+      + getTotalForContract('Queens')     // max queens penalty
+      + getTotalForContract('Tricks')     // max tricks penalty
+      + getTotalForContract('Last Two Tricks') // max LTT penalty
+      + 80;                                // max King‐of‐Spades penalty
+
+    // game halves and floors raw, so threshold = 90% of that
+    const threshold = Math.floor(totalRaw * 0.9 / 2);
+
+    // check every player’s Barbu score
+    players.forEach(p => {
+      const sc = r.scores[p] || 0;
+      if (sc > threshold && !triggerFired.barbu90[p]) {
+        events.push({ key:'barbu90', player: p });
+      }
+    });
+  }
+
+
+
+  // If any triggers collected, pick one at random and fire it
+  if (events.length) {
+    const {key, player} = events[Math.floor(Math.random() * events.length)];
+    triggerFired[key][player] = true;
+    fireSarcasm(key, player);
+  }
+}
+
+
+
+
 
 // — Rename Player Helper (preserve all past scores) —
 function startRename(idx) {
@@ -329,6 +511,98 @@ function importGameFile(ev) {
   };
   reader.readAsText(file);
 }
+
+// ----------------------------------
+// Sarcasm Message Config
+// ----------------------------------
+
+// — Sarcasm messages config —  
+const sarcasmConfig = {
+  bigLead2x: [
+    "Game: Hey {name}, you’re treating them like practice dummies.",
+    "Game: Slow down, {name}—they’re still trying to catch up!",
+    "Game: {name}, let us know when you feel like letting someone else win."
+  ],
+  hugeLead4x: [
+    "Game: {name}, is this a competition or a solo showcase?",
+    "Game: Careful now, {name}, don’t break the scoreboard.",
+    "Game: God-mode engaged—nice work, {name}."
+  ],
+  stuckLast4: [
+    "Game: {name}, you might need a map down there in the basement.",
+    "Game: Four times last,get moving {name}?",
+    "Game: {name}, send a smoke signal; rescue’s on its way."
+  ],
+  stuckLast8: [
+    "Game: Eight losses deep—basement’s feeling like home?",
+    "Game: You’ve made last place your permanent address, {name}.",
+    "Game: Send up a flare—we’re still looking for you, {name}."
+  ],
+  stuckLast16: [
+    "Game: Sixteen straight? You’re legendary… at losing, {name}.",
+    "Game: At this point it’s a lifestyle choice, huh, {name}?",
+    "Game: We’ve renamed the basement in your honor, {name}."
+  ],
+  kingOfSpades3: [
+    "Game: You and Jamie Lanister the Kingslayers?",
+    "Game: {name}, you’re single-handedly fueling the spade revolution.",
+    "Game: Three Kings already, {name}—starting your own monarchy?"
+  ],
+  domino3x: [
+    "Game: Well played, {name}—you’re free falling.",
+    "Game: Bravo, {name}, three wins in Domino is nothing short of legendary.",
+    "Game: {name}, you just made Domino your personal victory dance."
+  ],
+  hearts10: [
+    "Game: {name}, Cupid just filed a restraining order.",
+    "Game: {name}, Love is on the air. ",
+    "Game: {name}, do you need a box of chocolates for all these hearts?"
+  ],
+  tricks10: [
+    "Game: {name}, have you seen this card? It probably is on your tricks!",
+    "Game: {name}, you have to learn to share you took everything",
+    "Game: {name}, teaching a masterclass or what?"
+  ],
+  queens4: [
+    "Game: Queen slayer! Where’s your crown, {name}?",
+    "Game: Royal massacre complete, {name}.",
+    "Game: You make dethroning look effortless, {name}."
+  ],
+  barbu90: [
+    "Game: Over 90%? That’s pure annihilation, {name}.",
+    "Game: {name}, you turned Barbu into an extreme sport.",
+    "Game: At this pace, {name}, you’ll need your own hall of fame."
+  ],
+  lastPreLast3: [
+    "Game: {name}, You took Last & Pre Last in the Last & Pre Last , Last Pre Last",
+    "Game: You like taking tricks we get avoid the last two though next time",
+    "Game: {name}, at least you are consistent."
+  ]
+};
+
+// — Counters for each trigger —  
+const triggerCounters = {
+  lastPlaceStreak: {},  // 4/8/16-round “last” streak
+  kingCount:       {},  // 3-in-a-row King-of-Spades
+  dominoWins:      {},  // 3-in-a-row Domino negatives
+  lastPreLast:     {}   // 2-in-a-row Last-Two-Tricks
+};
+// — Ensure each quip only fires once per player —  
+// — Ensure each quip only fires once per player —  
+const triggerFired = {
+  bigLead2x:     {},  // matches sarcasmConfig.bigLead2x
+  hugeLead4x:    {},  // matches sarcasmConfig.hugeLead4x
+  stuckLast4:    {},  // matches sarcasmConfig.stuckLast4
+  stuckLast8:    {},  // matches sarcasmConfig.stuckLast8
+  stuckLast16:   {},  // matches sarcasmConfig.stuckLast16
+  kingOfSpades3: {},  // matches sarcasmConfig.kingOfSpades3
+  domino3x:      {},  // matches sarcasmConfig.domino3x
+  lastPreLast3:  {},  // matches sarcasmConfig.lastPreLast3
+  barbu90:       {},
+  hearts10:      {},
+  tricks10:      {},
+  queens4:       {}
+};
 
 
 
@@ -1070,14 +1344,17 @@ function submitRound() {
     // Return to “new round” for the same dealer
     addBtn.textContent = 'Submit Round';
     nextRound();
-  }
+} 
   else {
     // Normal “append a new round” path
-    rounds.push({
+    const newRound = {
       dealer: players[currentDealerIndex],
       contract: c,
       scores
-    });
+    };
+    rounds.push(newRound);
+    updateTriggers(newRound);
+
     currentDealerIndex = (currentDealerIndex + 1) % players.length;
     saveState();
 
@@ -1086,6 +1363,7 @@ function submitRound() {
     appendRow();
     nextRound();
   }
+
 }
 
 

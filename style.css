@@ -713,3 +713,13 @@ header#top-bar {
 .edit-name-btn:hover {
   opacity: 1;
 }
+
+
+.sassy-label {
+  display: block;
+  margin: 0.5em 0;
+  font-style: italic;
+}
+.sassy-label input {
+  margin-right: 0.3em;
+}
